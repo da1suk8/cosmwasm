@@ -5,6 +5,16 @@ use crate::utils::{abort_by, collect_available_arg_types, has_return_value, make
 
 pub fn make_callable_point(function: syn::ItemFn) -> TokenStream {
     let function_name_ident = &function.sig.ident;
+
+    let func_name = format!("{}", &function.sig.ident);
+    if func_name.starts_with("__attr") {
+        abort_by!(
+            func_name,
+            "callable_point",
+            "callable_point function name can not start with `__attr`."
+        )
+    }
+
     let mod_name_ident = format_ident!("__wasm_export_{}", function_name_ident);
     // The first argument is `deps` and the second one is `env`,
     // the rest is region pointers
@@ -46,6 +56,13 @@ pub fn make_callable_point(function: syn::ItemFn) -> TokenStream {
             )
         }
     };
+
+    let read_write_flag = if is_dep_mutable {
+        "read_write"
+    } else {
+        "read_only"
+    };
+    let attr_function_name = format_ident!("__attr_{}_{}", read_write_flag, function_name_ident);
 
     match &orig_arg_types[1] {
         syn::Type::Path(p) => {
@@ -101,6 +118,9 @@ pub fn make_callable_point(function: syn::ItemFn) -> TokenStream {
 
                 #call_origin_return
             }
+
+            #[no_mangle]
+            extern "C" fn #attr_function_name () {}
         }
     }
 }
