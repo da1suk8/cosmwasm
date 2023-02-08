@@ -8,6 +8,36 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, NumberResponse, QueryMsg};
 
 const KEY: &[u8] = b"number";
 
+mod __tete {
+
+    #[derive(serde::Serialize, serde::Deserialize)]
+    struct CalleeDict {
+        #[serde(flatten)]
+        inner: std::collections::HashMap<String, bool>,
+    }
+
+    #[no_mangle]
+    extern "C" fn _is_callee_function_read_only(arg: u32) -> u32 {
+        let vec_arg_idents: Vec<u8> = unsafe {
+            cosmwasm_std::memory::consume_region(arg as *mut cosmwasm_std::memory::Region)
+        };
+        let _arg_idents: String = cosmwasm_std::from_slice(&vec_arg_idents).unwrap();
+
+        let mut tete = CalleeDict {
+            inner: std::collections::HashMap::new(),
+        };
+
+        tete.inner.insert(String::from("add"), false);
+        tete.inner.insert(String::from("mul"), false);
+        tete.inner.insert(String::from("sub"), false);
+        tete.inner.insert(String::from("number"), true);
+
+        // let result = func_context.get(&arg_idents).unwrap();
+        let vec_result = cosmwasm_std::to_vec(&tete).unwrap();
+        cosmwasm_std::memory::release_buffer(vec_result) as u32
+    }
+}
+
 fn write(storage: &mut dyn Storage, value: i32) {
     storage.set(KEY, &value.to_be_bytes())
 }
