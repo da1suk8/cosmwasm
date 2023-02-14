@@ -8,6 +8,114 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, NumberResponse, QueryMsg};
 
 const KEY: &[u8] = b"number";
 
+mod __tete {
+
+    use serde::ser::{Serialize, SerializeMap, Serializer};
+
+    struct MyMap<K, V> {
+        inner: Vec<(K, V)>,
+    }
+
+    impl<K, V> Serialize for MyMap<K, V>
+    where
+        K: Serialize,
+        V: Serialize,
+    {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let mut map = serializer.serialize_map(Some(self.inner.len()))?;
+            for (k, v) in &self.inner {
+                map.serialize_entry(&k, &v)?;
+            }
+            map.end()
+        }
+    }
+
+    #[no_mangle]
+    extern "C" fn _is_callee_function_read_only(_arg: u32) -> u32 {
+        let m = MyMap {
+            inner: vec![
+                ("add", false),
+                ("mul", false),
+                ("sub", false),
+                ("number", true),
+            ],
+        };
+
+        let tete = serde_json::to_string(&m).unwrap();
+        // let vec_result = match cosmwasm_std::to_vec(&tete) {
+        //     Ok(v) => v,
+        //     Err(e) => e.to_string().as_bytes().to_vec(),
+        // };
+
+        // let mut res = Response::default();
+        // res.data = Some(Binary(vec_result));
+
+        // let vec_arg_idents: Vec<u8> = unsafe {
+        //     cosmwasm_std::memory::consume_region(arg as *mut cosmwasm_std::memory::Region)
+        // };
+        // let _arg_idents: String = cosmwasm_std::from_slice(&vec_arg_idents);
+
+        // let mut tete = CalleeDict {
+        //     inner: std::collections::HashMap::new(),
+        // };
+
+        // tete.inner.insert(String::from("add"), false);
+        // tete.inner.insert(String::from("mul"), false);
+        // tete.inner.insert(String::from("sub"), false);
+        // tete.inner.insert(String::from("number"), true);
+
+        // let result = func_context.get(&arg_idents).unwrap();
+        // let vec_result = match cosmwasm_std::to_vec(&tete) {
+        //     Ok(v) => v,
+        //     Err(e) => e.to_string().as_bytes().to_vec(),
+        // };
+
+        let vec_result = cosmwasm_std::to_vec(&tete).unwrap();
+        cosmwasm_std::memory::release_buffer(vec_result) as u32
+    }
+}
+
+// #[no_mangle]
+// extern "C" fn _is_callee_function_read_only(arg: u32) -> u32 {
+//     let vec_arg_idents: Vec<u8> =
+//         unsafe { cosmwasm_std::memory::consume_region(arg as *mut cosmwasm_std::memory::Region) };
+//     let arg_idents: String = cosmwasm_std::from_slice(&vec_arg_idents).unwrap();
+
+//     let mut func_context = std::collections::HashMap::new();
+
+//     let mut tete = CalleeDict {
+//         inner: std::collections::HashMap::new(),
+//     };
+
+//     tete.inner.insert(String::from("add"), false);
+//     tete.inner.insert(String::from("mul"), false);
+//     tete.inner.insert(String::from("sub"), false);
+//     tete.inner.insert(String::from("number"), true);
+
+//     // storeするときにvalidationもいる？
+
+//     // let func_context = [
+//     //     (String::from("add"), false),
+//     //     (String::from("mul"), false),
+//     //     (String::from("sub"), false),
+//     //     (String::from("number"), true),
+//     // ];
+
+//     // caseのがいいよ
+
+//     func_context.insert(String::from("add"), false);
+//     func_context.insert(String::from("mul"), false);
+//     func_context.insert(String::from("sub"), false);
+//     func_context.insert(String::from("number"), true);
+
+//     let result = func_context.get(&arg_idents).unwrap();
+//     let vec_result = cosmwasm_std::to_vec(&result).unwrap();
+//     cosmwasm_std::memory::release_buffer(vec_result) as u32
+// }
+
 fn write(storage: &mut dyn Storage, value: i32) {
     storage.set(KEY, &value.to_be_bytes())
 }

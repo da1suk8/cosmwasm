@@ -972,6 +972,7 @@ dependencies = [
  "cosmwasm-vm",
  "schemars",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

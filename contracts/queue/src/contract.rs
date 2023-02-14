@@ -9,6 +9,29 @@ use crate::msg::{
 };
 use crate::state::Item;
 
+use serde::ser::{Serialize, SerializeMap, Serializer};
+
+struct MyMap<K, V> {
+    inner: Vec<(K, V)>,
+}
+
+impl<K, V> Serialize for MyMap<K, V>
+where
+    K: Serialize,
+    V: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(self.inner.len()))?;
+        for (k, v) in &self.inner {
+            map.serialize_entry(&k, &v)?;
+        }
+        map.end()
+    }
+}
+
 // A no-op, just empty data
 #[entry_point]
 pub fn instantiate(
@@ -17,7 +40,20 @@ pub fn instantiate(
     _info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> StdResult<Response> {
-    Ok(Response::default())
+    let m = MyMap {
+        inner: vec![("a", 1), ("b", 2)],
+    };
+
+    let tete = serde_json::to_string(&m).unwrap();
+    let vec_result = match cosmwasm_std::to_vec(&tete) {
+        Ok(v) => v,
+        Err(e) => e.to_string().as_bytes().to_vec(),
+    };
+
+    let mut res = Response::default();
+    res.data = Some(Binary(vec_result));
+
+    Ok(res)
 }
 
 #[entry_point]
